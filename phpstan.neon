@@ -1,0 +1,9 @@
+parameters:
+  level: 7
+  paths:
+    - src
+  parallel:
+    maximumNumberOfProcesses: 6
+  phpVersion: 80200
+includes:
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
