@@ -138,7 +138,7 @@ class Main {
 				continue;
 			}
 			$checkWay = $lastWay;
-			if (isset($branchBase)) {
+			if (isset($branchBase) && strlen($ele->role)) {
 				$checkWay = $branchBase;
 			}
 			$connectingNode = $checkWay->getConnectingNode($way, $ele->role, $checkNum++);
@@ -199,22 +199,22 @@ class Main {
 					]);
 					return false;
 				}
-			} elseif (isset($branchBase)) {
+			} elseif (isset($branchBase) && strlen($ele->role)) {
 				$this->logger->info("Second Branch entered\n");
 			}
 			if ($way->isRoundabout()) {
-				$lastWay = $way;
-				continue;
-			}
-			if ($connectingNode === $way->getLastNode()) {
+				// $lastWay = $way;
+				// continue;
+			} elseif ($connectingNode === $way->getLastNode()) {
 				$way->nodes = array_reverse($way->nodes);
 			}
 			if (strlen($ele->role) && !isset($branchBase)) {
 				/** @var Way */
 				$branchBase = $lastWay;
-				$this->logger->info("Making Way #{id} ({name}) the new branch base.\n", [
+				$this->logger->info("Making Way #{id} ({name}, {count} nodes) the new branch base.\n", [
 					"id" => $branchBase->id,
 					"name" => $branchBase->getDisplayName(),
+					"count" => count($branchBase->nodes),
 				]);
 			}
 			if (empty($ele->role) && isset($branchBase)) {
