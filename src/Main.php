@@ -137,6 +137,11 @@ class Main {
 				$lastWay = $way;
 				continue;
 			}
+			if (isset($branchBase) && $way === $lastWay && strlen($ele->role)) {
+				$lastWay = $branchBase;
+				unset($branchBase);
+				continue;
+			}
 			$checkWay = $lastWay;
 			if (isset($branchBase) && strlen($ele->role)) {
 				$checkWay = $branchBase;
