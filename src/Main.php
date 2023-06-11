@@ -102,10 +102,11 @@ class Main {
 			if (!isset($way) || !($way instanceof Way)) {
 				return false;
 			}
-			$this->logger->info("Examining {type} #{id} ({name})\n", [
+			$this->logger->info("Examining {type} #{id} ({name}, {count} nodes)\n", [
 				"type" => $ele->type->name,
 				"id" => $ele->ref,
 				"name" => $way->getDisplayName(),
+				"count" => count($way->nodes),
 			]);
 			if (!isset($lastWay)) {
 				$this->logger->debug("No last way set\n");
@@ -136,15 +137,19 @@ class Main {
 				$lastWay = $way;
 				continue;
 			}
-			$connectingNode = $lastWay->getConnectingNode($way, $ele->role, $checkNum++);
+			$checkWay = $lastWay;
+			if (isset($branchBase)) {
+				$checkWay = $branchBase;
+			}
+			$connectingNode = $checkWay->getConnectingNode($way, $ele->role, $checkNum++);
 			if (!isset($connectingNode)) {
-				$this->logger->info("No connection between last Way (#{lastway_id}) and Way #{id}\n", [
-					"lastway_id" => $lastWay->id,
+				$this->logger->info("No connection between Way (#{lastway_id}) and Way #{id}\n", [
+					"lastway_id" => $checkWay->id,
 					"id" => $way->id,
 				]);
 				if (isset($branchBase)) {
 					$this->logger->info("Checking Branching\n");
-					$connectingNode = $branchBase->getConnectingNode($way, $ele->role, $checkNum++);
+					$connectingNode = $lastWay->getConnectingNode($way, $ele->role, $checkNum++);
 					if (!isset($connectingNode)) {
 						$this->logger->error(
 							"In relation {relation_id} ({relation_name}), the ".
@@ -173,7 +178,6 @@ class Main {
 					]);
 						return false;
 					}
-					$this->logger->info("Second Branch entered\n");
 				} else {
 					$this->logger->error(
 						"In relation {relation_id} ({relation_name}), the way ".
@@ -195,6 +199,8 @@ class Main {
 					]);
 					return false;
 				}
+			} elseif (isset($branchBase)) {
+				$this->logger->info("Second Branch entered\n");
 			}
 			if ($way->isRoundabout()) {
 				$lastWay = $way;
