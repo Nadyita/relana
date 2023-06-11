@@ -14,8 +14,8 @@ class Relation extends Element {
 		public string $timestamp,
 		public int $version,
 		public int $changeset,
-		public string $user,
-		public int $uid,
+		public ?string $user=null,
+		public ?int $uid=null,
 		#[CastListToType(RelationMember::class)]
 		public array $members=[],
 		public array $tags=[],

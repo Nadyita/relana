@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nadyita\Relana;
 
-use EventSauce\ObjectHydrator\ObjectMapperUsingReflection;
+use EventSauce\ObjectHydrator\{ObjectMapperUsingReflection, UnableToHydrateObject};
 use Exception;
 use Monolog\Logger;
 use Nadyita\Relana\OSM\{ElementType, Relation as OSMRelation, Result, Way};
@@ -24,7 +24,14 @@ class Main {
 		}
 		$data = json_decode($json, true);
 		$mapper = new ObjectMapperUsingReflection();
-		return $mapper->hydrateObjects(Relation::class, $data)->toArray();
+		try {
+			return $mapper->hydrateObjects(Relation::class, $data)->toArray();
+		} catch (UnableToHydrateObject $e) {
+			$this->logger->critical("Error hydrating data: {error}", [
+				"error" => $e->getMessage(),
+			]);
+			throw $e;
+		}
 	}
 
 	public function downloadRelation(Relation $relation): Result {
@@ -38,7 +45,14 @@ class Main {
 		}
 		$json = json_decode($data, true);
 		$mapper = new ObjectMapperUsingReflection();
-		$result = $mapper->hydrateObject(Result::class, $json);
+		try {
+			$result = $mapper->hydrateObject(Result::class, $json);
+		} catch (UnableToHydrateObject $e) {
+			$this->logger->critical("Error hydrating data: {error}", [
+				"error" => $e->getMessage(),
+			]);
+			throw $e;
+		}
 		return $result;
 	}
 
@@ -86,7 +100,7 @@ class Main {
 			}
 			$way = $ways[$ele->ref]??null;
 			if (!isset($way) || !($way instanceof Way)) {
-				return  false;
+				return false;
 			}
 			$this->logger->info("Examining {type} #{id} ({name})\n", [
 				"type" => $ele->type->name,
@@ -145,6 +159,18 @@ class Main {
 								"branchbase_id" => $branchBase->id,
 							]
 						);
+						$this->logger->error("Way #{way_id} consists of these nodes: {nodes}\n", [
+						"way_id" => $way->id,
+						"nodes" => join(", ", $way->nodes),
+					]);
+						$this->logger->error("Way #{way_id} consists of these nodes: {nodes}\n", [
+						"way_id" => $lastWay->id,
+						"nodes" => join(", ", $lastWay->nodes),
+					]);
+						$this->logger->error("Way #{way_id} consists of these nodes: {nodes}\n", [
+						"way_id" => $branchBase->id,
+						"nodes" => join(", ", $branchBase->nodes),
+					]);
 						return false;
 					}
 					$this->logger->info("Second Branch entered\n");

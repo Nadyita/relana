@@ -14,8 +14,8 @@ class Way extends Element {
 		public string $timestamp,
 		public int $version,
 		public int $changeset,
-		public string $user,
-		public int $uid,
+		public ?string $user=null,
+		public ?int $uid=null,
 		#[CastListToType("int")]
 		public array $nodes=[],
 		public array $tags=[],
@@ -44,7 +44,7 @@ class Way extends Element {
 			join("\n * ", $this->nodes);
 	}
 
-	public function getConnectingNode(Way $otherWay, ?string $direction=null, int $checkNum): ?int {
+	public function getConnectingNode(Way $otherWay, ?string $direction, int $checkNum): ?int {
 		$ourFirst = $this->getFirstNode();
 		$theirFirst = $otherWay->getFirstNode();
 		$theirLast = $otherWay->getLastNode();

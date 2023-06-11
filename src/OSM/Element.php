@@ -10,8 +10,8 @@ class Element {
 		public string $timestamp,
 		public int $version,
 		public int $changeset,
-		public string $user,
-		public int $uid,
+		public ?string $user=null,
+		public ?int $uid=null,
 		public array $tags=[],
 	) {
 	}
