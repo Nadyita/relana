@@ -162,9 +162,15 @@ class Indexer {
 						"<a class=\"link-offset-2 link-underline link-underline-opacity-0\" target=\"_blank\" href=\"{$url}\">".
 							$name.
 						"</a>".PHP_EOL.
+						(isset($relation->tags['ref'])
+							? " <span class=\"text-black-50\">(" . htmlentities($relation->tags['ref']) . ")</span>"
+							: "").
 					'</p>'.PHP_EOL.
+					(isset($relation->tags['symbol'])
+						? "<div class=\"small\"><strong>Symbol</strong>: " . htmlentities($relation->tags['symbol']) . '</div>'
+						: "").
 					(isset($relation->tags['description'])
-						? "<small>" . htmlentities($relation->tags['description']) . '</small>'
+						? "<div class=\"small\"><strong>Description</strong>: " . htmlentities($relation->tags['description']) . '</div>'
 						: "").
 				'</div>'.PHP_EOL.
 				(isset($relation->tags['distance'])
