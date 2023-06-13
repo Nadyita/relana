@@ -7,7 +7,8 @@ namespace Nadyita\Relana;
 use EventSauce\ObjectHydrator\{ObjectMapperUsingReflection, UnableToHydrateObject};
 use Exception;
 use Monolog\Logger;
-use Nadyita\Relana\OSM\{ElementType, OverpassRelation, Relation as OSMRelation, OverpassResult, Way};
+use Nadyita\Relana\OSM\{ElementType, OverpassNode, OverpassRelation, Relation as OSMRelation, OverpassResult, OverpassWay, Way};
+use Nadyita\Relana\OSM;
 
 class Indexer {
 	public function __construct(
@@ -41,6 +42,70 @@ class Indexer {
 		return $pre.join("\n", $blocks)."\n".$post;
 	}
 
+	private function getRelationIcon(OverpassRelation $relation, OverpassResult $result): string {
+		$main = new Main($this->logger);
+		$nElements = [];
+		foreach ($result->elements as $element) {
+			if ($element instanceof OverpassNode) {
+				$nElements []= new OSM\Node(
+					id: $element->id,
+					timestamp: "2000-01-01 00:00:00T00:00",
+					version: 1,
+					changeset: 1,
+					user: null,
+					uid: null,
+					lat: $element->lat,
+					lon: $element->lon,
+					tags: $element->tags,
+				);
+			} elseif ($element instanceof OverpassWay) {
+				$nElements []= new OSM\Way(
+					id: $element->id,
+					timestamp: "2000-01-01 00:00:00T00:00",
+					version: 1,
+					changeset: 1,
+					user: null,
+					uid: null,
+					nodes: $element->nodes,
+					tags: $element->tags,
+				);
+			} else {
+				$nElements []= new OSM\Relation(
+					id: $element->id,
+					timestamp: "2000-01-01 00:00:00T00:00",
+					version: 1,
+					changeset: 1,
+					user: null,
+					uid: null,
+					members: $element->members,
+					tags: $element->tags,
+				);
+			}
+		}
+		$nRelation = new OSM\Relation(
+			id: $relation->id,
+			timestamp: "2000-01-01 00:00:00T00:00",
+			version: 1,
+			changeset: 1,
+			user: null,
+			uid: null,
+			members: $relation->members,
+			tags: $relation->tags,
+		);
+		$nResult = new OSM\Result(
+			version: $result->version,
+			generator: $result->generator,
+			copyright: "none",
+			attribution: "none",
+			license: "none",
+			elements: [...$nElements, $nRelation],
+		);
+		if ($main->validateRelation($nResult)) {
+			return "<img src=\"/img/approval.svg\"/>";
+		}
+		return "<img src=\"/img/broken_link.svg\"/>";
+	}
+
 	private function renderRelation(OverpassRelation $relation, OverpassResult $result): string {
 		if (count($relation->members) === 0) {
 			return "";
@@ -56,7 +121,7 @@ class Indexer {
 				}
 				natsort($blocks);
 			}
-			array_unshift($blocks, "</ul>\n<h1>".
+			array_unshift($blocks, "</ul>\n<h1 class=\"mt-5\">".
 				"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
 				htmlentities($relation->tags['name']) . "</a></h1>".
 				"<ul class=\"list-group\">");
@@ -65,8 +130,9 @@ class Indexer {
 			// 	"<strong>" . htmlentities($relation->tags['name']) . "</strong></a></td></tr>");
 			return join("\n", $blocks);
 		}
-		return "<li>" . htmlentities($relation->tags['name']).
-			"<li><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
+		return "<li class=\"list-group-item\"><span class=\"me-3\">".
+			$this->getRelationIcon($relation, $result) . "</span>".
+			"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
 			htmlentities($relation->tags["name"]) . "</a></li>";
 		return "<tr><td>" . htmlentities($relation->tags['name']) . "</td>".
 			"<td><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
