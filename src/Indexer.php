@@ -7,10 +7,14 @@ namespace Nadyita\Relana;
 use EventSauce\ObjectHydrator\{ObjectMapperUsingReflection, UnableToHydrateObject};
 use Exception;
 use Monolog\Logger;
-use Nadyita\Relana\OSM\{ElementType, OverpassNode, OverpassRelation, Relation as OSMRelation, OverpassResult, OverpassWay, Way};
+use Nadyita\Relana\OSM\{ElementType, OverpassElement, OverpassNode, OverpassRelation, Relation as OSMRelation, OverpassResult, OverpassWay, Way};
 use Nadyita\Relana\OSM;
 
 class Indexer {
+	/** @var array<int,OverpassRelation> */
+	private array $relations=[];
+	private OSM\Result $result;
+
 	public function __construct(
 		private Logger $logger,
 	) {
@@ -25,6 +29,12 @@ class Indexer {
 		}
 		$ids = array_map("intval", explode(",", $ids));
 		$result = $this->downloadRelationList($ids);
+		foreach ($result->elements as $ele) {
+			if ($ele instanceof OverpassRelation) {
+				$this->relations[$ele->id] = $ele;
+			}
+		}
+		$this->result = $result->toResult();
 		$html = $this->generateIndex($ids, $result);
 		echo($html);
 	}
@@ -42,65 +52,11 @@ class Indexer {
 		return $pre.join("\n", $blocks)."\n".$post;
 	}
 
-	private function getRelationIcon(OverpassRelation $relation, OverpassResult $result): string {
+	private function getRelationIcon(OverpassRelation $relation): string {
 		$main = new Main($this->logger);
-		$nElements = [];
-		foreach ($result->elements as $element) {
-			if ($element instanceof OverpassNode) {
-				$nElements []= new OSM\Node(
-					id: $element->id,
-					timestamp: "2000-01-01 00:00:00T00:00",
-					version: 1,
-					changeset: 1,
-					user: null,
-					uid: null,
-					lat: $element->lat,
-					lon: $element->lon,
-					tags: $element->tags,
-				);
-			} elseif ($element instanceof OverpassWay) {
-				$nElements []= new OSM\Way(
-					id: $element->id,
-					timestamp: "2000-01-01 00:00:00T00:00",
-					version: 1,
-					changeset: 1,
-					user: null,
-					uid: null,
-					nodes: $element->nodes,
-					tags: $element->tags,
-				);
-			} else {
-				$nElements []= new OSM\Relation(
-					id: $element->id,
-					timestamp: "2000-01-01 00:00:00T00:00",
-					version: 1,
-					changeset: 1,
-					user: null,
-					uid: null,
-					members: $element->members,
-					tags: $element->tags,
-				);
-			}
-		}
-		$nRelation = new OSM\Relation(
-			id: $relation->id,
-			timestamp: "2000-01-01 00:00:00T00:00",
-			version: 1,
-			changeset: 1,
-			user: null,
-			uid: null,
-			members: $relation->members,
-			tags: $relation->tags,
-		);
-		$nResult = new OSM\Result(
-			version: $result->version,
-			generator: $result->generator,
-			copyright: "none",
-			attribution: "none",
-			license: "none",
-			elements: [...$nElements, $nRelation],
-		);
-		if ($main->validateRelation($nResult)) {
+		$result = clone($this->result);
+		$result->elements []= $relation->toRelation();
+		if ($main->validateRelation($result)) {
 			return "<img src=\"/img/approval.svg\"/>";
 		}
 		return "<img src=\"/img/broken_link.svg\"/>";
@@ -124,27 +80,16 @@ class Indexer {
 			array_unshift($blocks, "</ul>\n<h1 class=\"mt-5\">".
 				htmlentities($relation->tags['name']) . "</h1>".
 				"<ul class=\"list-group\">");
-			// array_unshift($blocks, "<tr class=\"table-primary\"><td colspan=\"2\" class=\"text-center\">".
-			// 	"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
-			// 	"<strong>" . htmlentities($relation->tags['name']) . "</strong></a></td></tr>");
 			return join("\n", $blocks);
 		}
 		return "<!-- " . htmlentities($relation->tags["name"]) . " --><li class=\"list-group-item\"><span class=\"me-3\">".
-			$this->getRelationIcon($relation, $result) . "</span>".
+			$this->getRelationIcon($relation) . "</span>".
 			"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
 			htmlentities($relation->tags["name"]) . "</a></li>";
-		// return "<tr><td>" . htmlentities($relation->tags['name']) . "</td>".
-		// 	"<td><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
-		// 	"<img src=\"/check.php?id={$relation->id}\" /></a></td></tr>";
 	}
 
-	private function getRelation(int $id, OverpassResult $result): OverpassRelation {
-		foreach ($result->elements as $ele) {
-			if ($ele->id === $id && $ele instanceof OverpassRelation) {
-				return $ele;
-			}
-		}
-		throw new Exception("Boom!");
+	private function getRelation(int $id): OverpassRelation {
+		return $this->relations[$id];
 	}
 
 	/**

@@ -12,4 +12,18 @@ class OverpassNode extends OverpassElement {
 		public ElementType $type=ElementType::Node,
 	) {
 	}
+
+	public function toNode(): Node {
+		return new Node(
+			id: $this->id,
+			timestamp: "2000-01-01 00:00:00T00:00",
+			version: 1,
+			changeset: 1,
+			user: null,
+			uid: null,
+			lat: $this->lat,
+			lon: $this->lon,
+			tags: $this->tags,
+		);
+	}
 }

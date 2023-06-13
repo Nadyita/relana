@@ -21,4 +21,25 @@ class OverpassResult {
 		public array $elements,
 	) {
 	}
+
+	public function toResult(): Result {
+		$elements = [];
+		foreach ($this->elements as $element) {
+			if ($element instanceof OverpassNode) {
+				$elements []= $element->toNode();
+			} elseif ($element instanceof OverpassWay) {
+				$elements []= $element->toWay();
+			} else {
+				$elements []= $element->toRelation();
+			}
+		}
+		return new Result(
+			version: $this->version,
+			generator: $this->generator,
+			copyright: "none",
+			attribution: "none",
+			license: "none",
+			elements: $elements,
+		);
+	}
 }

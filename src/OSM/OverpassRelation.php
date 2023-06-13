@@ -17,4 +17,17 @@ class OverpassRelation extends OverpassElement {
 		public ElementType $type=ElementType::Relation,
 	) {
 	}
+
+	public function toRelation(): Relation {
+		return new Relation(
+			id: $this->id,
+			timestamp: "2000-01-01 00:00:00T00:00",
+			version: 1,
+			changeset: 1,
+			user: null,
+			uid: null,
+			members: $this->members,
+			tags: $this->tags,
+		);
+	}
 }

@@ -18,77 +18,17 @@ class OverpassWay extends OverpassElement {
 	) {
 	}
 
-	public function isRoundabout(): bool {
-		return in_array(
-			$this->tags['junction'] ?? null,
-			['roundabout', 'circular'],
-			true
+	public function toWay(): Way {
+		return new Way(
+			id: $this->id,
+			timestamp: "2000-01-01 00:00:00T00:00",
+			version: 1,
+			changeset: 1,
+			user: null,
+			uid: null,
+			nodes: $this->nodes,
+			tags: $this->tags,
 		);
 	}
 
-	public function getFirstNode(): int {
-		return $this->nodes[0];
-	}
-
-	public function getLastNode(): int {
-		return $this->nodes[count($this->nodes)-1];
-	}
-
-	public function print(): string {
-		return "Way ({$this->id}):\n * ".
-			join("\n * ", $this->nodes);
-	}
-
-	public function getConnectingNode(Way $otherWay, ?string $direction, int $checkNum): ?int {
-		$ourFirst = $this->getFirstNode();
-		$theirFirst = $otherWay->getFirstNode();
-		$theirLast = $otherWay->getLastNode();
-		$ourLast = $this->getLastNode();
-
-		if ($this->isRoundabout()) {
-			if (in_array($theirFirst, $this->nodes, true)) {
-				return $theirFirst;
-			}
-			if (in_array($theirLast, $this->nodes, true)) {
-				return $theirLast;
-			}
-			return null;
-		}
-		if ($otherWay->isRoundabout()) {
-			if ($checkNum === 1 && in_array($ourFirst, $otherWay->nodes, true)) {
-				return $ourFirst;
-			}
-			if (in_array($ourLast, $otherWay->nodes, true)) {
-				return $ourLast;
-			}
-			return null;
-		}
-		if ($checkNum === 1) {
-			if ($ourFirst === $theirFirst) {
-				return $theirFirst;
-			}
-			if ($ourFirst === $theirLast) {
-				return $theirLast;
-			}
-		}
-		if ($ourLast === $theirFirst) {
-			return $theirFirst;
-		}
-		if ($ourLast === $theirLast) {
-			return $theirLast;
-		}
-		return null;
-	}
-
-	public function getDisplayName(): string {
-		$wayName = $this->tags['name'] ?? null;
-		if (isset($wayName)) {
-			return $wayName;
-		}
-		$wayName = "Unknown";
-		if (isset($this->tags["highway"])) {
-			$wayName = 'Unnamed ' . $this->tags['highway'];
-		}
-		return $wayName;
-	}
 }
