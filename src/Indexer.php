@@ -56,11 +56,18 @@ class Indexer {
 				}
 				natsort($blocks);
 			}
-			array_unshift($blocks, "<tr class=\"table-primary\"><td colspan=\"2\" class=\"text-center\">".
+			array_unshift($blocks, "</ul>\n<h1>".
 				"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
-				"<strong>" . htmlentities($relation->tags['name']) . "</strong></a></td></tr>");
+				htmlentities($relation->tags['name']) . "</a></h1>".
+				"<ul class=\"list-group\">");
+			// array_unshift($blocks, "<tr class=\"table-primary\"><td colspan=\"2\" class=\"text-center\">".
+			// 	"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
+			// 	"<strong>" . htmlentities($relation->tags['name']) . "</strong></a></td></tr>");
 			return join("\n", $blocks);
 		}
+		return "<li>" . htmlentities($relation->tags['name']).
+			"<li><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
+			htmlentities($relation->tags["name"]) . "</a></li>";
 		return "<tr><td>" . htmlentities($relation->tags['name']) . "</td>".
 			"<td><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
 			"<img src=\"/check.php?id={$relation->id}\" /></a></td></tr>";
