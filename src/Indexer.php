@@ -11,6 +11,12 @@ use Nadyita\Relana\OSM\{ElementType, OverpassElement, OverpassNode, OverpassRela
 class Indexer {
 	/** @var array<int,OverpassRelation> */
 	private array $relations=[];
+
+	/** @var array<int,OverpassNode> */
+	private array $nodes=[];
+
+	/** @var array<int,OverpassWay> */
+	private array $ways=[];
 	private bool $fromCache = false;
 
 	public function __construct(
@@ -31,6 +37,10 @@ class Indexer {
 		foreach ($result->elements as $ele) {
 			if ($ele instanceof OverpassRelation) {
 				$this->relations[$ele->id] = $ele;
+			} elseif ($ele instanceof OverpassNode) {
+				$this->nodes[$ele->id] = $ele;
+			} elseif ($ele instanceof OverpassWay) {
+				$this->ways[$ele->id] = $ele;
 			}
 		}
 		$html = $this->generateIndex($ids, $result);
@@ -119,6 +129,26 @@ class Indexer {
 		}
 	}
 
+	public function getWayLength(OverpassWay $way): float {
+		$totalLength = 0;
+		for ($i = 1; $i < count($way->nodes); $i++) {
+			$from = $this->nodes[$way->nodes[$i-1]];
+			$to = $this->nodes[$way->nodes[$i]];
+			$totalLength += $way->haversineGreatCircleDistance($from, $to);
+		}
+		return $totalLength;
+	}
+
+	public function getRelationLength(OverpassRelation $rel): float {
+		$totalLength = 0;
+		foreach ($rel->members as $member) {
+			if ($member->type === ElementType::Way) {
+				$totalLength += $this->getWayLength($this->ways[$member->ref]);
+			}
+		}
+		return $totalLength;
+	}
+
 	private function getRelationIcon(OverpassRelation $relation): string {
 		return "<img class=\"img-fluid\" src=\"/check.php?id={$relation->id}\" />";
 	}
@@ -152,6 +182,11 @@ class Indexer {
 		$url = "http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on";
 		$name = htmlentities($relation->tags["name"]);
 		$icon = $this->getRelationIcon($relation);
+		$distance = $relation->tags['distance'] ?? null;
+		if (!isset($distance)) {
+			$distance = $this->getRelationLength($relation) / 1000;
+		}
+		$distance = number_format(round((float)$distance, 2), 2);
 		return "<!-- {$name} -->".
 			'<li class="list-group-item d-flex align-items-start">'.PHP_EOL.
 				'<span class="float-start d-inline-flex align-items-center justify-content-center me-2">'.
@@ -173,11 +208,9 @@ class Indexer {
 						? "<div class=\"small\"><strong>Description</strong>: " . htmlentities($relation->tags['description']) . '</div>'
 						: "").
 				'</div>'.PHP_EOL.
-				(isset($relation->tags['distance'])
-					? '<span class="badge bg-primary rounded-pill float-end">'.
-							htmlentities($relation->tags['distance']). 'km'.
-						'</span>'.PHP_EOL
-					: '').
+				'<span class="badge bg-primary rounded-pill float-end">'.
+					$distance . ' km'.
+				'</span>'.PHP_EOL.
 			'</li>';
 	}
 
