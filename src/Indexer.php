@@ -44,9 +44,24 @@ class Indexer {
 	/** @param int[] $ids */
 	public function generateIndex(array $ids, OverpassResult $result): string {
 		$blocks = [];
+		$strayRelations = [];
 		foreach ($ids as $id) {
 			$relation = $this->getRelation($id, $result);
+			if ($relation->members[0]->type !== OSM\ElementType::Relation) {
+				$strayRelations []= $relation;
+			}
+		}
+		usort($strayRelations, function (OverpassRelation $r1, OverpassRelation $r2): int {
+			return strnatcmp($r1->tags['name'], $r2->tags['name']);
+		});
+		foreach ($strayRelations as $relation) {
 			$blocks []= $this->renderRelation($relation, $result);
+		}
+		foreach ($ids as $id) {
+			$relation = $this->getRelation($id, $result);
+			if ($relation->members[0]->type === OSM\ElementType::Relation) {
+				$blocks []= $this->renderRelation($relation, $result);
+			}
 		}
 		$pre = file_get_contents(dirname(__DIR__) . "/pre.html");
 		$refreshLink = "";

@@ -13,5 +13,5 @@ $handler->setFormatter(new LineFormatter("[%level_name%] %message%\n"));
 $logger->pushHandler($handler);
 $logger->pushProcessor(new PsrLogMessageProcessor(null, true));
 $indexer = new Indexer($logger);
-$indexer->run('7700619,15971668,2012761,11552385,86399,15824677,7163517,67063,67062,6479318,67064');
-// $indexer->run($_REQUEST['relations']??null);
+$relations = $_REQUEST['relations'] ?? '7700619,15971668,2012761,11552385,86399,15824677,7163517,67063,67062,6479318,67064';
+$indexer->run($relations);
