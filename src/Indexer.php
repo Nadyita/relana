@@ -57,7 +57,8 @@ class Indexer {
 				natsort($blocks);
 			}
 			array_unshift($blocks, "<tr class=\"table-primary\"><td colspan=\"2\" class=\"text-center\">".
-				"<strong>" . htmlentities($relation->tags['name']) . "</strong></td></tr>");
+				"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
+				"<strong>" . htmlentities($relation->tags['name']) . "</strong></a></td></tr>");
 			return join("\n", $blocks);
 		}
 		return "<tr><td>" . htmlentities($relation->tags['name']) . "</td>".
