@@ -51,7 +51,7 @@ class Indexer {
 		$pre = file_get_contents(dirname(__DIR__) . "/pre.html");
 		$refreshLink = "";
 		if ($this->fromCache) {
-			$refreshLink = '<div><a href="/rels.php?ids=' . join(",", $ids) . '&amp;no_nache=1">Routenliste neu laden</a></div>';
+			$refreshLink = '<div><a class="btn btn-primary float-end" role="button" href="/rels.php?ids=' . join(",", $ids) . '&amp;no_cache=1">Routenliste neu laden</a></div>';
 		}
 		$pre = str_replace("{refresh-link}", $refreshLink, $pre);
 		$post = file_get_contents(dirname(__DIR__) . "/post.html");
