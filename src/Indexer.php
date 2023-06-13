@@ -129,13 +129,13 @@ class Indexer {
 			// 	"<strong>" . htmlentities($relation->tags['name']) . "</strong></a></td></tr>");
 			return join("\n", $blocks);
 		}
-		return "<li class=\"list-group-item\"><span class=\"me-3\">".
+		return "<!-- " . htmlentities($relation->tags["name"]) . " --><li class=\"list-group-item\"><span class=\"me-3\">".
 			$this->getRelationIcon($relation, $result) . "</span>".
 			"<a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
 			htmlentities($relation->tags["name"]) . "</a></li>";
-		return "<tr><td>" . htmlentities($relation->tags['name']) . "</td>".
-			"<td><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
-			"<img src=\"/check.php?id={$relation->id}\" /></a></td></tr>";
+		// return "<tr><td>" . htmlentities($relation->tags['name']) . "</td>".
+		// 	"<td><a target=\"_blank\" href=\"http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on\">".
+		// 	"<img src=\"/check.php?id={$relation->id}\" /></a></td></tr>";
 	}
 
 	private function getRelation(int $id, OverpassResult $result): OverpassRelation {
