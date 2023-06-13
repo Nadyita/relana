@@ -14,6 +14,7 @@ class Indexer {
 	/** @var array<int,OverpassRelation> */
 	private array $relations=[];
 	private OSM\Result $result;
+	private bool $fromCache = false;
 
 	public function __construct(
 		private Logger $logger,
@@ -47,12 +48,18 @@ class Indexer {
 			$blocks []= $this->renderRelation($relation, $result);
 		}
 		$pre = file_get_contents(dirname(__DIR__) . "/pre.html");
+		$refreshLink = "";
+		if ($this->fromCache) {
+			$refreshLink = '<div><a href="/rels.php?ids=' . join(",", $ids) . '&amp;no_nache=1">Refresh</a></div>';
+		}
+		$pre = str_replace("{refresh-link}", $refreshLink, $pre);
 		$post = file_get_contents(dirname(__DIR__) . "/post.html");
 		header("Content-type: text/html");
 		return $pre.join("\n", $blocks)."\n".$post;
 	}
 
 	private function getRelationIcon(OverpassRelation $relation): string {
+		return "<img src=\"/check.php?id={$relation->id}\" />";
 		$main = new Main($this->logger);
 		$result = clone($this->result);
 		$result->elements []= $relation->toRelation();
@@ -96,22 +103,31 @@ class Indexer {
 	 * @param int[] $ids
 	 */
 	public function downloadRelationList(array $ids): OverpassResult {
-		$postdata = http_build_query([
-			'data' => '[out:json][timeout:25];relation(id:' . join(",", $ids) . ');>>;out;',
-		]);
+		$cacheFile = dirname(__DIR__) . "/cache-" . join(",", $ids).".json";
+		$stat = @stat($cacheFile);
+		if ($stat !== false && !isset($_REQUEST['no_cache'])) {
+			$result = file_get_contents($cacheFile);
+			$this->fromCache = true;
+		} else {
+			$postdata = http_build_query([
+				'data' => '[out:json][timeout:25];relation(id:' . join(",", $ids) . ');>>;out;',
+			]);
 
-		$opts = [
-			'http' => [
-				'method' => 'POST',
-				'header' => 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
-				'content' => $postdata
-			]
-		];
+			$opts = [
+				'http' => [
+					'method' => 'POST',
+					'header' => 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+					'content' => $postdata
+				]
+			];
 
-		$context  = stream_context_create($opts);
+			$context  = stream_context_create($opts);
 
-		$result = file_get_contents('https://overpass-api.de/api/interpreter', false, $context);
-		
+			$result = file_get_contents('https://overpass-api.de/api/interpreter', false, $context);
+			file_put_contents($cacheFile, $result);
+			$this->fromCache = false;
+		}
+
 		$data = json_decode($result, true);
 		$mapper = new ObjectMapperUsingReflection();
 		try {
