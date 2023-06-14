@@ -58,11 +58,22 @@ class Indexer {
 				$strayRelations []= $relation;
 			}
 		}
-		usort($strayRelations, function (OverpassRelation $r1, OverpassRelation $r2): int {
-			return strnatcmp($r1->tags['name'], $r2->tags['name']);
-		});
-		foreach ($strayRelations as $relation) {
-			$blocks []= $this->renderRelation($relation, $result);
+		if (count($strayRelations)) {
+			usort($strayRelations, function (OverpassRelation $r1, OverpassRelation $r2): int {
+				return strnatcmp($r1->tags['name'], $r2->tags['name']);
+			});
+			foreach ($strayRelations as $relation) {
+				$blocks []= $this->renderRelation($relation, $result);
+			}
+			natsort($blocks);
+			$blocks = [
+				"<h1 class=\"mt-5\">".
+					"Einzel-Routen".
+				"</h1>",
+				"<ul class=\"list-group\">",
+				...$blocks,
+				"</ul>"
+			];
 		}
 		foreach ($ids as $id) {
 			$relation = $this->getRelation($id);
@@ -169,14 +180,16 @@ class Indexer {
 				}
 				natsort($blocks);
 			}
-			array_unshift(
-				$blocks,
-				"</ul>\n".
-				"<h1 class=\"mt-5\">".
-					htmlentities($relation->tags['name']).
-				"</h1>\n".
-				"<ul class=\"list-group\">"
-			);
+			if (count($blocks)) {
+				$blocks = [
+					"<h1 class=\"mt-5\">".
+						htmlentities($relation->tags['name']).
+					"</h1>",
+					"<ul class=\"list-group\">",
+					...$blocks,
+					"</ul>"
+				];
+			}
 			return join("\n", $blocks);
 		}
 		$url = "http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on";
