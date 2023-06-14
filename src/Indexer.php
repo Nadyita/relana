@@ -164,6 +164,15 @@ class Indexer {
 		return "<img class=\"img-fluid\" src=\"/check.php?id={$relation->id}\" />";
 	}
 
+	private function getSymbol(OverpassRelation $relation): string {
+		if (isset($relation->tags['osmc:symbol'])) {
+			return "<img class=\"symbol\" src=\"https://hiking.waymarkedtrails.org/api/v1/symbols/from_tags/NAT?".
+				http_build_query(["osmc:symbol" => $relation->tags['osmc:symbol']]).
+				"\"/>";
+		}
+		return "";
+	}
+
 	private function renderRelation(OverpassRelation $relation, OverpassResult $result): string {
 		if (count($relation->members) === 0) {
 			return "";
@@ -225,7 +234,7 @@ class Indexer {
 							: "").
 					'</p>'.PHP_EOL.
 					(isset($relation->tags['symbol'])
-						? "<div class=\"small\"><strong>Symbol</strong>: " . htmlentities($relation->tags['symbol']) . '</div>'
+						? "<div class=\"small\"><strong>Symbol</strong>: " . $this->getSymbol($relation) . " " . htmlentities($relation->tags['symbol']) . '</div>'
 						: "").
 					(isset($relation->tags['description'])
 						? "<div class=\"small\"><strong>Description</strong>: " . htmlentities($relation->tags['description']) . '</div>'
