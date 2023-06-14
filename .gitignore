@@ -1,2 +1,4 @@
 /vendor
 /.vs-code
+/relana.log
+/cache-*.json
