@@ -184,7 +184,17 @@ class Indexer {
 				$blocks = [
 					"<h1 class=\"mt-5\">".
 						htmlentities($relation->tags['name']).
-					"</h1>",
+						(isset($relation->tags['ref'])
+						? ' <span class="text-black-50">('.
+							htmlentities($relation->tags['ref']).
+							')</span>'
+						: '').
+					"</h1>".
+					(isset($relation->tags['description'])
+						? PHP_EOL.'<div class="small text-black-50">'.
+							htmlentities($relation->tags['description']).
+							'</div>'
+						: ''),
 					"<ul class=\"list-group\">",
 					...$blocks,
 					"</ul>"
