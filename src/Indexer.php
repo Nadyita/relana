@@ -85,7 +85,7 @@ class Indexer {
 		assert($pre !== false);
 		$refreshLink = "";
 		if ($this->fromCache) {
-			$refreshLink = '<div><a class="btn btn-primary float-end" role="button" href="/rels.php?ids=' . join(",", $ids) . '&amp;no_cache=1">Routenliste neu laden</a></div>';
+			$refreshLink = '<div class="fixed-top p-1"><a class="btn btn-primary float-end" role="button" href="/rels.php?ids=' . join(",", $ids) . '&amp;no_cache=1">Routenliste neu laden</a></div>';
 		}
 		$pre = str_replace("{refresh-link}", $refreshLink, $pre);
 		$post = file_get_contents(dirname(__DIR__) . "/post.html");
