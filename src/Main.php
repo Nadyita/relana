@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nadyita\Relana;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use EventSauce\ObjectHydrator\{ObjectMapperUsingReflection, UnableToHydrateObject};
 use Exception;
 use Monolog\Logger;
@@ -229,5 +231,140 @@ class Main {
 			$lastWay = $way;
 		}
 		return true;
+	}
+
+	public function exportGPX(int $id): void {
+		$indexer = new Indexer($this->logger);
+		$data = $indexer->downloadRelationList([$id], true);
+		if (empty($data->elements)) {
+			$indexer->errorPage(404, "Relation {$id} not found.");
+			return;
+		}
+		$fileName = "route";
+		foreach ($data->elements as $ele) {
+			if ($ele instanceof OSM\OverpassRelation && $ele->id === $id) {
+				if (isset($ele->tags['name'])) {
+					$fileName = preg_replace(
+						"/\s+/",
+						"-",
+						$ele->tags['name']
+					);
+				}
+			}
+		}
+		header("Content-Type: application/gpx+xml");
+		$gpx = $this->resultToGPX($data, $id);
+		header("Content-Length: " . strlen($gpx));
+		header("Content-Disposition: attachment; filename={$fileName}.gpx");
+		echo($gpx);
+	}
+
+	private function resultToGPX(OSM\OverpassResult $result, int $id): string {
+		/** @var array<int,OSM\OverpassNode> */
+		$nodes = [];
+
+		/** @var array<int,OSM\OverpassWay> */
+		$ways = [];
+		$mainName = null;
+		$mainDesc = "OSM data converted to GPX by relana";
+		foreach ($result->elements as $ele) {
+			if ($ele instanceof OSM\OverpassNode) {
+				$nodes[$ele->id] = $ele;
+			} elseif ($ele instanceof OSM\OverpassWay) {
+				$ways[$ele->id] = $ele;
+			} elseif ($ele instanceof OSM\OverpassRelation && $ele->id === $id) {
+				$mainName = $ele->tags['name'] ?? null;
+				if (isset($ele->tags['description'])) {
+					$mainDesc = $ele->tags['description'];
+				}
+			}
+		}
+		$time = (new DateTimeImmutable("now", new DateTimeZone("UTC")))
+			->format(DateTimeImmutable::RFC3339);
+		$lines = [
+			'<?xml version="1.0" encoding="UTF-8" standalone="no" ?>',
+			'<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="relana">',
+			'  <metadata>',
+		];
+		if (isset($mainName)) {
+			$lines []= '    <name>' . htmlspecialchars($mainName, ENT_NOQUOTES) . '</name>';
+		}
+		$lines = array_merge(
+			$lines,
+			[
+				'    <desc>' . htmlspecialchars($mainDesc, ENT_NOQUOTES) . '</desc>',
+				'    <copyright author="OpenStreetMap and Contributors">',
+				'      <license>https://www.openstreetmap.org/copyright</license>',
+				'    </copyright>',
+				"    <time>{$time}</time>",
+				'  </metadata>',
+			]
+		);
+		foreach ($result->elements as $ele) {
+			if (!($ele instanceof OSM\OverpassRelation)) {
+				continue;
+			}
+			$type = $ele->tags['type'] ?? null;
+			if ($type !== 'route') {
+				continue;
+			}
+			$lines []= $this->relationToTrk($ele, $nodes, $ways);
+		}
+		$lines []= "</gpx>";
+		return join(PHP_EOL, $lines);
+	}
+
+	/**
+	 * @param array<int,OSM\OverpassNode> $nodes
+	 * @param array<int,OSM\OverpassWay>  $ways
+	 */
+	private function relationToTrk(OSM\OverpassRelation $relation, array $nodes, array $ways): string {
+		$lines = [
+			"  <trk>",
+			"    <name>" . htmlspecialchars($relation->tags['name'], ENT_NOQUOTES) . "</name>",
+		];
+		if (isset($relation->tags['description'])) {
+			$lines []= "    <desc>" . htmlspecialchars($relation->tags['description'], ENT_NOQUOTES) . "</desc>";
+		}
+		$lines []= "    <link href=\"http://osm.org/browse/relation/{$relation->id}\"/>";
+		$lines []= "    <trkseg>";
+		$lastNode = null;
+		for ($i = 0; $i < count($relation->members); $i++) {
+			$member = $relation->members[$i];
+			if ($member->type !== ElementType::Way) {
+				continue;
+			}
+			$way = $ways[$member->ref];
+			if (isset($lastNode)) {
+				if ($way->nodes[count($way->nodes)-1] === $lastNode) {
+					$way->nodes = array_reverse($way->nodes);
+				} elseif ($way->nodes[0] !== $lastNode) {
+					$lines []= "    </trkseg>";
+					$lines []= "    <trkseg>";
+					$lastNode = null;
+				}
+			}
+			if (!isset($lastNode)) {
+				$nextWayId = $relation->members[$i+1]??null;
+				if (isset($nextWayId)) {
+					$nextWay = $ways[$nextWayId->ref];
+					if ($way->nodes[0] === $nextWay->nodes[0] || $way->nodes[0] === $nextWay->nodes[count($nextWay->nodes)-1]) {
+						$way->nodes = array_reverse($way->nodes);
+					}
+				}
+			}
+			foreach ($way->nodes as $nodeId) {
+				if ($nodeId === $lastNode) {
+					continue;
+				}
+				$node = $nodes[$nodeId];
+				$lines []= '      <trkpt lat="' . number_format($node->lat, 7) . '" '.
+					'lon="' . number_format($node->lon, 7) . '"/>';
+				$lastNode = $nodeId;
+			}
+		}
+		$lines []= "    </trkseg>";
+		$lines []= "  </trk>";
+		return join("\n", $lines);
 	}
 }

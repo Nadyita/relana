@@ -24,16 +24,33 @@ class Indexer {
 	) {
 	}
 
-	public function errorPage(string $msg): void {
+	public function errorPage(int $code, string $msg): void {
+		header("Status: {$code}");
+		header("Cotent-Type: text/html");
+		$lines = [
+			'<!DOCTYPE html>',
+			'<html lang="en">',
+			'  <head>',
+			'    <meta charset="UTF-8">',
+			'    <meta name="viewport" content="width=device-width, initial-scale=1">',
+			"    <title>Error {$code}</title>",
+			'  </head>',
+			'  <body>',
+			"    <h1>Error {$code}</h1>",
+			'    <p>' . htmlentities($msg) . '</p>',
+			'  </body>',
+			'</html>',
+		];
+		echo(join(PHP_EOL, $lines));
 	}
 
 	public function run(?string $ids=null): void {
 		if (!isset($ids)) {
-			$this->errorPage("Missing parameter: ids");
+			$this->errorPage(400, "Missing parameter: ids");
 			return;
 		}
 		$ids = array_map("intval", explode(",", $ids));
-		$result = $this->downloadRelationList($ids);
+		$result = $this->downloadRelationList($ids, ($_REQUEST['no_cache'] ?? null) === '1');
 		foreach ($result->elements as $ele) {
 			if ($ele instanceof OverpassRelation) {
 				$this->relations[$ele->id] = $ele;
@@ -72,7 +89,7 @@ class Indexer {
 				"</h1>",
 				"<ul class=\"list-group\">",
 				...$blocks,
-				"</ul>"
+				"</ul>",
 			];
 		}
 		foreach ($ids as $id) {
@@ -95,10 +112,10 @@ class Indexer {
 	}
 
 	/** @param int[] $ids */
-	public function downloadRelationList(array $ids): OverpassResult {
+	public function downloadRelationList(array $ids, bool $forceDownload=false): OverpassResult {
 		$cacheFile = dirname(__DIR__) . "/cache-" . join(",", $ids).".json";
 		$stat = @stat($cacheFile);
-		if ($stat !== false && !isset($_REQUEST['no_cache'])) {
+		if ($stat !== false && !$forceDownload) {
 			$result = file_get_contents($cacheFile);
 			$this->fromCache = true;
 		} else {
@@ -124,7 +141,7 @@ class Indexer {
 		}
 
 		if ($result === false) {
-			$this->errorPage("Unable to download relations.");
+			$this->errorPage(404, "Relation " . join(", ", $ids) . " not found.");
 			exit(1);
 		}
 
@@ -198,6 +215,7 @@ class Indexer {
 							htmlentities($relation->tags['ref']).
 							')</span>'
 						: '').
+					"&ensp;<a title=\"Download route as GPX\" href=\"/gpx.php?id={$relation->id}\">GPX</a>".
 					"</h1>".
 					(isset($relation->tags['description'])
 						? PHP_EOL.'<div class="small text-black-50">'.
@@ -206,7 +224,7 @@ class Indexer {
 						: ''),
 					"<ul class=\"list-group\">",
 					...$blocks,
-					"</ul>"
+					"</ul>",
 				];
 			}
 			return join("\n", $blocks);
@@ -243,6 +261,9 @@ class Indexer {
 				'<span class="badge bg-primary rounded-pill float-end">'.
 					$distance . ' km'.
 				'</span>'.PHP_EOL.
+				"<span class=\"badge float-end\">". PHP_EOL.
+					"<a title=\"Download route as GPX\" href=\"/gpx.php?id={$relation->id}\">GPX</a>" . PHP_EOL.
+				"</span>" . PHP_EOL.
 			'</li>';
 	}
 
