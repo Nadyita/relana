@@ -215,7 +215,9 @@ class Indexer {
 							htmlentities($relation->tags['ref']).
 							')</span>'
 						: '').
-					"&ensp;<a title=\"Download route as GPX\" href=\"/gpx.php?id={$relation->id}\">GPX</a>".
+					"&ensp;<a class=\"fs-6 icon-link link-underline link-underline-opacity-0 link-underline-opacity-50-hover\" title=\"Download route as GPX\" href=\"/gpx.php?id={$relation->id}\">".
+						'GPX <svg class="bi" aria-hidden="true"><use xlink:href="#download"></use></svg>'.
+						"</a>".
 					"</h1>".
 					(isset($relation->tags['description'])
 						? PHP_EOL.'<div class="small text-black-50">'.
@@ -262,7 +264,9 @@ class Indexer {
 					$distance . ' km'.
 				'</span>'.PHP_EOL.
 				"<span class=\"badge float-end\">". PHP_EOL.
-					"<a title=\"Download route as GPX\" href=\"/gpx.php?id={$relation->id}\">GPX</a>" . PHP_EOL.
+					"<a class=\"icon-link link-underline link-underline-opacity-0 link-underline-opacity-50-hover\" title=\"Download route as GPX\" href=\"/gpx.php?id={$relation->id}\">".
+						'GPX <svg class="bi" aria-hidden="true"><use xlink:href="#download"></use></svg>'.
+					"</a>" . PHP_EOL.
 				"</span>" . PHP_EOL.
 			'</li>';
 	}

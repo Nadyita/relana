@@ -245,9 +245,13 @@ class Main {
 			if ($ele instanceof OSM\OverpassRelation && $ele->id === $id) {
 				if (isset($ele->tags['name'])) {
 					$fileName = preg_replace(
-						"/\s+/",
+						"/-{2,}/",
 						"-",
-						$ele->tags['name']
+						preg_replace(
+							"/\s+/",
+							"-",
+							$ele->tags['name']
+						)
 					);
 				}
 			}
@@ -280,7 +284,7 @@ class Main {
 			}
 		}
 		$time = (new DateTimeImmutable("now", new DateTimeZone("UTC")))
-			->format(DateTimeImmutable::RFC3339);
+			->format("Y-m-d\TH:i:s\Z");
 		$lines = [
 			'<?xml version="1.0" encoding="UTF-8" standalone="no" ?>',
 			'<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="relana">',
@@ -323,10 +327,16 @@ class Main {
 			"  <trk>",
 			"    <name>" . htmlspecialchars($relation->tags['name'], ENT_NOQUOTES) . "</name>",
 		];
+		if (isset($relation->tags['note'])) {
+			$lines []= "    <cmt>" . htmlspecialchars($relation->tags['note']) . '</cmt>';
+		}
 		if (isset($relation->tags['description'])) {
 			$lines []= "    <desc>" . htmlspecialchars($relation->tags['description'], ENT_NOQUOTES) . "</desc>";
 		}
 		$lines []= "    <link href=\"http://osm.org/browse/relation/{$relation->id}\"/>";
+		if (isset($relation->tags['route'])) {
+			$lines []= "    <type>" . htmlspecialchars($relation->tags['route']) . ' route</type>';
+		}
 		$lines []= "    <trkseg>";
 		$lastNode = null;
 		for ($i = 0; $i < count($relation->members); $i++) {
