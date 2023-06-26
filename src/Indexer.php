@@ -44,6 +44,20 @@ class Indexer {
 		echo(join(PHP_EOL, $lines));
 	}
 
+	public function getName(OverpassRelation $relation): string {
+		$name = $relation->tags['name']
+			?? $relation->tags['ref']
+			?? $relation->tags['description']
+			?? (isset($relation->tags['from'], $relation->tags['to'])
+				? "Von {$relation->tags['from']} nach {$relation->tags['to']}"
+				: "Unbenannte Route"
+			);
+		if (isset($relation->tags['stage'])) {
+			$name .= " (Etappe " . $relation->tags['stage'] . ")";
+		}
+		return $name;
+	}
+
 	public function run(?string $ids=null): void {
 		if (!isset($ids)) {
 			$this->errorPage(400, "Missing parameter: ids");
@@ -77,7 +91,7 @@ class Indexer {
 		}
 		if (count($strayRelations)) {
 			usort($strayRelations, function (OverpassRelation $r1, OverpassRelation $r2): int {
-				return strnatcmp($r1->tags['name'], $r2->tags['name']);
+				return strnatcmp($this->getName($r1), $this->getName($r2));
 			});
 			foreach ($strayRelations as $relation) {
 				$blocks []= $this->renderRelation($relation, $result);
@@ -209,7 +223,7 @@ class Indexer {
 			if (count($blocks)) {
 				$blocks = [
 					"<h1 class=\"mt-5\">".
-						htmlentities($relation->tags['name']).
+						htmlentities($this->getName($relation)).
 						(isset($relation->tags['ref'])
 						? ' <span class="text-black-50">('.
 							htmlentities($relation->tags['ref']).
@@ -219,6 +233,12 @@ class Indexer {
 						'GPX <svg class="bi" aria-hidden="true"><use xlink:href="#download"></use></svg>'.
 						"</a>".
 					"</h1>".
+					(isset($relation->tags['alt_name'])
+						? PHP_EOL . '<div class="small">a.k.a. '.
+							htmlentities($relation->tags['alt_name']).
+							'</div>'
+						: ''
+					).
 					(isset($relation->tags['description'])
 						? PHP_EOL.'<div class="small text-black-50">'.
 							htmlentities($relation->tags['description']).
@@ -232,7 +252,7 @@ class Indexer {
 			return join("\n", $blocks);
 		}
 		$url = "http://ra.osmsurround.org/analyzeRelation?relationId={$relation->id}&_noCache=on";
-		$name = htmlentities($relation->tags["name"]);
+		$name = htmlentities($this->getName($relation));
 		$icon = $this->getRelationIcon($relation);
 		$distance = $relation->tags['distance'] ?? null;
 		if (!isset($distance)) {
