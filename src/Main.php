@@ -92,7 +92,11 @@ class Main {
 		/** @var ?Way */
 		$branchBase = null;
 		$checkNum = 1;
-		foreach ($relation->members as $ele) {
+		$members = $relation->members;
+		if (isset($relation->tags['roundtrip']) && $relation->tags['roundtrip'] === 'yes') {
+			$members []= $members[0];
+		}
+		foreach ($members as $ele) {
 			if ($ele->type !== ElementType::Way) {
 				$this->logger->info("Skipping {type} #{id}\n", [
 					"type" => $ele->type->name,

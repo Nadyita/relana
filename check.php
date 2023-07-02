@@ -7,14 +7,13 @@ use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\{StreamHandler};
 use Monolog\Processor\PsrLogMessageProcessor;
 use Monolog\{Level, Logger};
-use Nadyita\Relana\Main;
-use Nadyita\Relana\Relation;
+use Nadyita\Relana\{Main, Relation};
 
 function showPic(string $file): void {
 	header("Content-type: image/svg+xml", true);
 	$data = file_get_contents($file);
 	header("Content-Length: " . strlen($data), true);
-	echo ($data);
+	echo($data);
 }
 $logger = new Logger('Relana');
 $handler = new StreamHandler(__DIR__ . "/relana.log", Level::Notice);
@@ -28,9 +27,18 @@ try {
 } catch (Throwable) {
 	showPic(__DIR__ . "/img/cancel.svg");
 	exit(0);
-}	
+}
+$rel = $relation->elements[count($relation->elements)-1];
 if ($main->validateRelation($relation)) {
-	showPic(__DIR__ . "/img/approval.svg");
+	if (isset($rel->tags['roundtrip']) && $rel->tags['roundtrip'] === 'yes') {
+		showPic(__DIR__ . "/img/approval_roundtrip.svg");
+	} else {
+		showPic(__DIR__ . "/img/approval.svg");
+	}
 } else {
-	showPic(__DIR__ . "/img/broken_link.svg");
+	if (isset($rel->tags['roundtrip']) && $rel->tags['roundtrip'] === 'yes') {
+		showPic(__DIR__ . "/img/broken_link_roundtrip.svg");
+	} else {
+		showPic(__DIR__ . "/img/broken_link.svg");
+	}
 }

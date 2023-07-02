@@ -48,7 +48,8 @@ class Indexer {
 		$name = $relation->tags['name']
 			?? $relation->tags['ref']
 			?? $relation->tags['description']
-			?? (isset($relation->tags['from'], $relation->tags['to'])
+			?? (
+				isset($relation->tags['from'], $relation->tags['to'])
 				? "Von {$relation->tags['from']} nach {$relation->tags['to']}"
 				: "Unbenannte Route"
 			);
@@ -221,10 +222,18 @@ class Indexer {
 				natsort($blocks);
 			}
 			if (count($blocks)) {
+				$fromTo = [];
+				if (isset($relation->tags['from'])) {
+					$fromTo []= "from {$relation->tags['from']}";
+				}
+				if (isset($relation->tags['to'])) {
+					$fromTo []= "to {$relation->tags['to']}";
+				}
+				$relName = $this->getName($relation);
 				$blocks = [
 					"<h1 class=\"mt-5\">".
-						htmlentities($this->getName($relation)).
-						(isset($relation->tags['ref'])
+						htmlentities($relName).
+						((isset($relation->tags['ref']) && ($relation->tags['ref'] !== $relName))
 						? ' <span class="text-black-50">('.
 							htmlentities($relation->tags['ref']).
 							')</span>'
@@ -233,7 +242,8 @@ class Indexer {
 						'GPX <svg class="bi" aria-hidden="true"><use xlink:href="#download"></use></svg>'.
 						"</a>".
 					"</h1>".
-					(isset($relation->tags['alt_name'])
+					(
+						isset($relation->tags['alt_name'])
 						? PHP_EOL . '<div class="small">a.k.a. '.
 							htmlentities($relation->tags['alt_name']).
 							'</div>'
@@ -244,6 +254,11 @@ class Indexer {
 							htmlentities($relation->tags['description']).
 							'</div>'
 						: ''),
+					(
+						count($fromTo)
+						? PHP_EOL . ucfirst(join(" ", $fromTo))
+						: ""
+					),
 					"<ul class=\"list-group\">",
 					...$blocks,
 					"</ul>",
@@ -259,6 +274,13 @@ class Indexer {
 			$distance = $this->getRelationLength($relation) / 1000;
 		}
 		$distance = number_format(round((float)$distance, 2), 2);
+		$fromTo = [];
+		if (isset($relation->tags['from'])) {
+			$fromTo []= "<strong>From</strong> " . htmlentities($relation->tags['from']);
+		}
+		if (isset($relation->tags['to'])) {
+			$fromTo []= "<strong>to</strong> " . htmlentities($relation->tags['to']);
+		}
 		return "<!-- {$name} -->".
 			'<li class="list-group-item d-flex align-items-start">'.PHP_EOL.
 				'<span class="float-start d-inline-flex align-items-center justify-content-center me-2">'.
@@ -269,10 +291,13 @@ class Indexer {
 						"<a class=\"link-offset-2 link-underline link-underline-opacity-0\" target=\"_blank\" href=\"{$url}\">".
 							$name.
 						"</a>".PHP_EOL.
-						(isset($relation->tags['ref'])
+						((isset($relation->tags['ref']) && $relation->tags['ref'] !== $name)
 							? " <span class=\"text-black-50\">(" . htmlentities($relation->tags['ref']) . ")</span>"
 							: "").
 					'</p>'.PHP_EOL.
+					(count($fromTo)
+						? "<div class=\"small\">" . join(" ", $fromTo) . '</div>'
+						: "").
 					(isset($relation->tags['symbol'])
 						? "<div class=\"small\"><strong>Symbol</strong>: " . $this->getSymbol($relation) . " " . htmlentities($relation->tags['symbol']) . '</div>'
 						: "").
