@@ -197,6 +197,12 @@ class Indexer {
 	}
 
 	private function getSymbol(OverpassRelation $relation): string {
+		if (isset($relation->tags['wiki:symbol'])) {
+			$normPath = str_replace(" ", "_", $relation->tags['wiki:symbol']);
+			$md5 = md5($normPath);
+			$fullPath = substr($md5, 0, 1) . "/" . substr($md5, 0, 2) . "/{$normPath}";
+			return "<img class=\"symbol\" src=\"https://wiki.openstreetmap.org/w/images/{$fullPath}\"/>";
+		}
 		if (isset($relation->tags['osmc:symbol'])) {
 			return "<img class=\"symbol\" src=\"https://hiking.waymarkedtrails.org/api/v1/symbols/from_tags/NAT?".
 				http_build_query(["osmc:symbol" => $relation->tags['osmc:symbol']]).
