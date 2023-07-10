@@ -304,8 +304,11 @@ class Indexer {
 					(count($fromTo)
 						? "<div class=\"small\">" . join(" ", $fromTo) . '</div>'
 						: "").
-					(isset($relation->tags['symbol'])
-						? "<div class=\"small\"><strong>Symbol</strong>: " . $this->getSymbol($relation) . " " . htmlentities($relation->tags['symbol']) . '</div>'
+					((isset($relation->tags['symbol']) || isset($relation->tags['wiki:symbol']) || isset($relation->tags['osmc:symbol']))
+						? "<div class=\"small\"><strong>Symbol</strong>: ".
+							$this->getSymbol($relation).
+							(isset($relation->tags['symbol']) ? (" " . htmlentities($relation->tags['symbol']))
+							: '') . '</div>'
 						: "").
 					(isset($relation->tags['description'])
 						? "<div class=\"small\"><strong>Description</strong>: " . htmlentities($relation->tags['description']) . '</div>'
