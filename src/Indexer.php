@@ -86,6 +86,9 @@ class Indexer {
 		$strayRelations = [];
 		foreach ($ids as $id) {
 			$relation = $this->getRelation($id);
+			if ($relation === null) {
+				continue;
+                        }
 			if ($relation->members[0]->type !== OSM\ElementType::Relation) {
 				$strayRelations []= $relation;
 			}
@@ -328,7 +331,7 @@ class Indexer {
 			'</li>';
 	}
 
-	private function getRelation(int $id): OverpassRelation {
+	private function getRelation(int $id): ?OverpassRelation {
 		return $this->relations[$id];
 	}
 }
